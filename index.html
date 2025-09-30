@@ -59,20 +59,46 @@
             const fileInputRef = useRef(null);
             const jsonInputRef = useRef(null);
 
-            // Carica da localStorage all'avvio
+            // Carica da localStorage all'avvio, o da GitHub se non presente
             React.useEffect(() => {
-                const savedData = localStorage.getItem('sinonimi-dizionario');
-                if (savedData) {
+                const loadDictionary = async () => {
+                    // Prima controlla localStorage
+                    const savedData = localStorage.getItem('sinonimi-dizionario');
+                    if (savedData) {
+                        try {
+                            const data = JSON.parse(savedData);
+                            const normalized = normalizeData(data);
+                            setLemmi(normalized);
+                            setFiltered(normalized);
+                            setLoading(false);
+                            return;
+                        } catch (error) {
+                            console.error('Errore caricamento da localStorage:', error);
+                            localStorage.removeItem('sinonimi-dizionario');
+                        }
+                    }
+
+                    // Se non c'è in localStorage, scarica da GitHub
                     try {
-                        const data = JSON.parse(savedData);
+                        const response = await fetch('https://raw.githubusercontent.com/Infingardo/sinonimi-dizionario/main/sinonimi-master.json');
+                        if (!response.ok) throw new Error('Fetch fallito');
+                        
+                        const data = await response.json();
                         const normalized = normalizeData(data);
                         setLemmi(normalized);
                         setFiltered(normalized);
+                        
+                        // Salva in localStorage per le prossime volte
+                        localStorage.setItem('sinonimi-dizionario', JSON.stringify(normalized));
                     } catch (error) {
-                        console.error('Errore caricamento da localStorage:', error);
+                        console.error('Errore caricamento da GitHub:', error);
+                        // Se fallisce, l'utente vedrà la schermata di caricamento manuale
                     }
-                }
-                setLoading(false);
+                    
+                    setLoading(false);
+                };
+
+                loadDictionary();
             }, []);
 
             const ensureArray = (value) => {
