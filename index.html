@@ -53,11 +53,27 @@
             const [lemmi, setLemmi] = useState([]);
             const [searchTerm, setSearchTerm] = useState('');
             const [filtered, setFiltered] = useState([]);
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(true);
             const [showExport, setShowExport] = useState(false);
             const [searchInSynonyms, setSearchInSynonyms] = useState(false);
             const fileInputRef = useRef(null);
             const jsonInputRef = useRef(null);
+
+            // Carica da localStorage all'avvio
+            React.useEffect(() => {
+                const savedData = localStorage.getItem('sinonimi-dizionario');
+                if (savedData) {
+                    try {
+                        const data = JSON.parse(savedData);
+                        const normalized = normalizeData(data);
+                        setLemmi(normalized);
+                        setFiltered(normalized);
+                    } catch (error) {
+                        console.error('Errore caricamento da localStorage:', error);
+                    }
+                }
+                setLoading(false);
+            }, []);
 
             const ensureArray = (value) => {
                 if (Array.isArray(value)) return value;
@@ -129,6 +145,9 @@
                     const normalized = normalizeData(data);
                     setLemmi(normalized);
                     setFiltered(normalized);
+                    // Salva in localStorage
+                    localStorage.setItem('sinonimi-dizionario', JSON.stringify(normalized));
+                    alert('Dizionario caricato e salvato! La prossima volta sarà già pronto.');
                 } catch (error) {
                     alert('Errore nel caricamento del JSON: ' + error.message);
                 }
@@ -139,6 +158,18 @@
                 const files = Array.from(e.target.files);
                 if (files.length === 0) return;
                 await parseHTMLFiles(files);
+                // Salva in localStorage dopo il parsing
+                localStorage.setItem('sinonimi-dizionario', JSON.stringify(lemmi));
+            };
+
+            const clearCache = () => {
+                if (confirm('Vuoi davvero cancellare il dizionario salvato? Dovrai ricaricarlo.')) {
+                    localStorage.removeItem('sinonimi-dizionario');
+                    setLemmi([]);
+                    setFiltered([]);
+                    setSearchTerm('');
+                    alert('Cache cancellata! Ricarica il dizionario.');
+                }
             };
 
             const handleSearch = (value) => {
@@ -285,10 +316,17 @@
                                         </div>
                                         <button
                                             onClick={() => setShowExport(true)}
-                                            className="px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
+                                            className="px-4 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition flex items-center gap-2"
                                         >
                                             <Download size={20} />
-                                            Export JSON
+                                            Export
+                                        </button>
+                                        <button
+                                            onClick={clearCache}
+                                            className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                                            title="Cancella dizionario salvato"
+                                        >
+                                            🗑️
                                         </button>
                                     </div>
 
@@ -306,7 +344,7 @@
                                     </div>
 
                                     <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-lg p-4 mb-6 border border-amber-200">
-                                        <div className="flex gap-6 text-sm">
+                                        <div className="flex gap-6 text-sm items-center flex-wrap">
                                             <div>
                                                 <span className="text-gray-600">Lemmi totali: </span>
                                                 <span className="font-bold text-gray-800">{lemmi.length.toLocaleString()}</span>
@@ -314,6 +352,9 @@
                                             <div>
                                                 <span className="text-gray-600">Risultati: </span>
                                                 <span className="font-bold text-gray-800">{filtered.length.toLocaleString()}</span>
+                                            </div>
+                                            <div className="ml-auto text-xs text-green-700 flex items-center gap-1">
+                                                💾 Salvato nel browser
                                             </div>
                                         </div>
                                     </div>
@@ -435,8 +476,7 @@
         }
 
         const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<SinonimiApp />) 
-            ;
+        root.render(<SinonimiApp />);
     </script>
 </body>
 </html>
