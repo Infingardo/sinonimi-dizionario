@@ -540,16 +540,34 @@ SUCCESSIVAMENTE:
 ### Origine Dizionario
 
 ```
-Fonte: Dizionario vintage restaurato digitalmente
-Anno originale: Inizio 1900s (Larousse italiano)
-Restauro digitale: 2024
-Formattazione: JSON moderno
+Fonte Originale: Homolaicus - Linguaggi (www.homolaicus.com)
+Autore Originale: Enciclopedia on-line Homolaicus
+Adattamento digitale: 2024
+Formattazione: JSON moderno per web interattiva
 
 Qualità: Affidabile e completato
 Copertura: Lessico italiano standard
+Licenza Originale: CC-BY (Creative Commons Attribution)
 ```
 
-### Contributi Miglioramenti
+### Attribution (Crediti)
+
+Questo progetto è una **modernizzazione interattiva** del dizionario dei sinonimi di Homolaicus.
+
+**Crediti dovuti a:**
+- **Homolaicus** (www.homolaicus.com) - Database originale dei sinonimi italiani
+- **Enciclopedia Homolaicus** - Manutenzione e curation dei dati
+- **CC-BY License** - Che consente riuso con attribuzione
+
+**Menzione obbligatoria:**
+Quando usi/distribuisci questo dizionario, riconosci:
+```
+Derivato da: Homolaicus - Dizionario dei Sinonimi
+Fonte: www.homolaicus.com
+Licenza: Creative Commons Attribution 4.0
+```
+
+### Contributi e Miglioramenti
 
 Se trovi errori o vuoi suggerimenti:
 
@@ -559,6 +577,47 @@ Se trovi errori o vuoi suggerimenti:
 4. **Pull Request** con i miglioramenti
 
 Repository: `https://github.com/Infingardo/sinonimi-dizionario`
+
+---
+
+## 📋 Licenza e Attribution
+
+### CC-BY 4.0 Compliance
+
+Questo progetto rispetta i termini CC-BY 4.0:
+
+```
+✅ ATTRIBUZIONE: Crediti a Homolaicus sopra riportati
+✅ MODIFICHE: Consentite (interfaccia moderna, caching, etc.)
+✅ DISTRIBUZIONE: Consentita con attribuzione
+✅ USO COMMERCIALE: Consentito con attribuzione
+❌ NO WARRANTY: Fornito as-is senza garanzie
+```
+
+### Come Citare Questo Progetto
+
+**Uso Scientifico/Accademico:**
+```
+Infingardo (2024). Dizionario dei Sinonimi - Edizione Web Interattiva. 
+Basato su: Homolaicus - Dizionario Sinonimi (www.homolaicus.com).
+GitHub: https://github.com/Infingardo/sinonimi-dizionario
+```
+
+**Menzione Informale:**
+```
+Fonte: Dizionario Sinonimi Interattivo (Infingardo, 2024)
+Basato su Homolaicus: www.homolaicus.com
+```
+
+**In un Progetto:**
+```
+<!-- Nel README o footer -->
+Dizionario dei Sinonimi fornito da:
+https://infingardo.github.io/sinonimi-dizionario/
+
+Basato su dati da Homolaicus (www.homolaicus.com)
+Licenza: CC-BY 4.0
+```
 
 ---
 
