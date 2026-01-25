@@ -36,13 +36,32 @@
             from { transform: translateX(-50%) translateY(100px); opacity: 0; }
             to { transform: translateX(-50%) translateY(0); opacity: 1; }
         }
+        .highlight {
+            background-color: #FEF3C7;
+            border-radius: 2px;
+            padding: 0 2px;
+        }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useRef, useEffect } = React;
+        const { useState, useRef, useEffect, useCallback } = React;
+
+        // Debounce hook
+        const useDebounce = (callback, delay) => {
+            const timeoutRef = useRef(null);
+            return useCallback((...args) => {
+                if (timeoutRef.current) clearTimeout(timeoutRef.current);
+                timeoutRef.current = setTimeout(() => callback(...args), delay);
+            }, [callback, delay]);
+        };
+
+        // Normalizza testo (rimuove accenti per ricerca)
+        const normalizeText = (text) => {
+            return text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+        };
 
         const Search = () => (
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -67,6 +86,13 @@
             </svg>
         );
 
+        const Trash = ({ size = 20 }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+        );
+
         const BookOpen = ({ size = 64 }) => (
             <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path>
@@ -83,10 +109,11 @@
             const [searchInSynonyms, setSearchInSynonyms] = useState(false);
             const [showInstallPrompt, setShowInstallPrompt] = useState(false);
             const [deferredPrompt, setDeferredPrompt] = useState(null);
+            const [currentSearchTerm, setCurrentSearchTerm] = useState(''); // Per highlighting
             const fileInputRef = useRef(null);
             const jsonInputRef = useRef(null);
 
-            const VERSION = '1.0.0';
+            const VERSION = '1.1.0';
             const CACHE_KEY = 'sinonimi-dizionario';
             const VERSION_KEY = 'sinonimi-version';
 
@@ -184,7 +211,7 @@
 
             useEffect(() => {
                 if (searchTerm) {
-                    handleSearch(searchTerm);
+                    performSearch(searchTerm);
                 }
             }, [searchInSynonyms]);
 
@@ -311,34 +338,44 @@
                     setLemmi([]);
                     setFiltered([]);
                     setSearchTerm('');
+                    setCurrentSearchTerm('');
                     alert('Cache cancellata! Ricarica il dizionario.');
                 }
             };
 
-            const handleSearch = (value) => {
-                setSearchTerm(value);
+            // Funzione di ricerca effettiva
+            const performSearch = useCallback((value) => {
                 if (!value.trim()) {
                     setFiltered(lemmi);
+                    setCurrentSearchTerm('');
                     return;
                 }
 
                 const term = value.toLowerCase();
+                const normalizedTerm = normalizeText(value);
                 const startsWithWildcard = term.startsWith('*');
                 const endsWithWildcard = term.endsWith('*');
                 const cleanTerm = term.replace(/\*/g, '');
+                const cleanNormalizedTerm = normalizedTerm.replace(/\*/g, '');
 
                 const matchFunc = (text) => {
                     const lowerText = text.toLowerCase();
+                    const normalizedText = normalizeText(text);
                     
-                    if (startsWithWildcard && endsWithWildcard) {
-                        return lowerText.includes(cleanTerm);
-                    } else if (startsWithWildcard) {
-                        return lowerText.endsWith(cleanTerm) || lowerText.includes(' ' + cleanTerm);
-                    } else if (endsWithWildcard) {
-                        return lowerText.startsWith(cleanTerm);
-                    } else {
-                        return lowerText === cleanTerm || lowerText.startsWith(cleanTerm + ' ');
-                    }
+                    // Prova match esatto prima, poi normalizzato
+                    const checkMatch = (textToCheck, termToCheck) => {
+                        if (startsWithWildcard && endsWithWildcard) {
+                            return textToCheck.includes(termToCheck);
+                        } else if (startsWithWildcard) {
+                            return textToCheck.endsWith(termToCheck) || textToCheck.includes(' ' + termToCheck);
+                        } else if (endsWithWildcard) {
+                            return textToCheck.startsWith(termToCheck);
+                        } else {
+                            return textToCheck === termToCheck || textToCheck.startsWith(termToCheck + ' ');
+                        }
+                    };
+                    
+                    return checkMatch(lowerText, cleanTerm) || checkMatch(normalizedText, cleanNormalizedTerm);
                 };
 
                 const results = lemmi.filter(entry => {
@@ -354,10 +391,47 @@
                 });
                 
                 setFiltered(results);
+                setCurrentSearchTerm(cleanTerm);
+            }, [lemmi, searchInSynonyms]);
+
+            // Debounced search
+            const debouncedSearch = useDebounce(performSearch, 300);
+
+            const handleSearch = (value) => {
+                setSearchTerm(value);
+                debouncedSearch(value);
             };
 
             const toggleSearchInSynonyms = () => {
                 setSearchInSynonyms(!searchInSynonyms);
+            };
+
+            // Evidenzia il termine cercato
+            const highlightMatch = (text, isMatch) => {
+                if (!currentSearchTerm || !searchInSynonyms || !isMatch) return text;
+                
+                const normalizedText = normalizeText(text);
+                const normalizedTerm = normalizeText(currentSearchTerm);
+                
+                if (normalizedText.includes(normalizedTerm)) {
+                    // Trova la posizione nel testo originale
+                    const idx = normalizedText.indexOf(normalizedTerm);
+                    if (idx !== -1) {
+                        const before = text.slice(0, idx);
+                        const match = text.slice(idx, idx + currentSearchTerm.length);
+                        const after = text.slice(idx + currentSearchTerm.length);
+                        return <>{before}<span className="highlight">{match}</span>{after}</>;
+                    }
+                }
+                return text;
+            };
+
+            // Verifica se un termine matcha
+            const termMatches = (text) => {
+                if (!currentSearchTerm) return false;
+                const normalizedText = normalizeText(text);
+                const normalizedTerm = normalizeText(currentSearchTerm);
+                return normalizedText.includes(normalizedTerm);
             };
 
             const copyToClipboard = () => {
@@ -479,10 +553,10 @@
                                         </button>
                                         <button
                                             onClick={clearCache}
-                                            className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                                            title="Cancella dizionario salvato"
+                                            className="px-4 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2"
+                                            title="Cancella dizionario dalla cache locale"
                                         >
-                                            X
+                                            <Trash size={20} />
                                         </button>
                                     </div>
 
@@ -532,20 +606,23 @@
                                                         <div className="mb-3">
                                                             <span className="text-sm font-semibold text-gray-600 block mb-1">Sinonimi:</span>
                                                             <div className="text-gray-700">
-                                                                {entry.sinonimi.map((sin, i) => (
-                                                                    <span key={i}>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSearchTerm(sin);
-                                                                                handleSearch(sin);
-                                                                            }}
-                                                                            className="hover:text-orange-600 hover:underline cursor-pointer transition"
-                                                                        >
-                                                                            {sin}
-                                                                        </button>
-                                                                        {i < entry.sinonimi.length - 1 && ', '}
-                                                                    </span>
-                                                                ))}
+                                                                {entry.sinonimi.map((sin, i) => {
+                                                                    const isMatch = termMatches(sin);
+                                                                    return (
+                                                                        <span key={i}>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSearchTerm(sin);
+                                                                                    performSearch(sin);
+                                                                                }}
+                                                                                className={`hover:text-orange-600 hover:underline cursor-pointer transition ${isMatch ? 'font-semibold' : ''}`}
+                                                                            >
+                                                                                {highlightMatch(sin, isMatch)}
+                                                                            </button>
+                                                                            {i < entry.sinonimi.length - 1 && ', '}
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
@@ -554,20 +631,23 @@
                                                         <div>
                                                             <span className="text-sm font-semibold text-gray-600 block mb-1">Contrari:</span>
                                                             <div className="text-gray-600">
-                                                                {entry.contrari.map((con, i) => (
-                                                                    <span key={i}>
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                setSearchTerm(con);
-                                                                                handleSearch(con);
-                                                                            }}
-                                                                            className="hover:text-orange-600 hover:underline cursor-pointer transition"
-                                                                        >
-                                                                            {con}
-                                                                        </button>
-                                                                        {i < entry.contrari.length - 1 && ', '}
-                                                                    </span>
-                                                                ))}
+                                                                {entry.contrari.map((con, i) => {
+                                                                    const isMatch = termMatches(con);
+                                                                    return (
+                                                                        <span key={i}>
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    setSearchTerm(con);
+                                                                                    performSearch(con);
+                                                                                }}
+                                                                                className={`hover:text-orange-600 hover:underline cursor-pointer transition ${isMatch ? 'font-semibold' : ''}`}
+                                                                            >
+                                                                                {highlightMatch(con, isMatch)}
+                                                                            </button>
+                                                                            {i < entry.contrari.length - 1 && ', '}
+                                                                        </span>
+                                                                    );
+                                                                })}
                                                             </div>
                                                         </div>
                                                     )}
@@ -576,6 +656,7 @@
                                         ) : (
                                             <div className="text-center py-12">
                                                 <p className="text-xl text-gray-500">Nessun risultato per "{searchTerm}"</p>
+                                                <p className="text-sm text-gray-400 mt-2">Prova a cercare senza accenti (es: "perche" invece di "perché")</p>
                                             </div>
                                         )}
                                         
@@ -587,6 +668,25 @@
                                     </div>
                                 </>
                             )}
+                        </div>
+
+                        {/* Footer con crediti */}
+                        <div className="mt-6 text-center text-sm text-gray-500">
+                            <p>
+                                Dati derivati da{' '}
+                                <a 
+                                    href="https://www.homolaicus.com/linguaggi/sinonimi/" 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="text-amber-700 hover:underline"
+                                >
+                                    Homolaicus - Dizionario dei Sinonimi
+                                </a>
+                                {' '}(Enrico Galavotti)
+                            </p>
+                            <p className="text-xs text-gray-400 mt-1">
+                                Licenza CC-BY 4.0 • Interfaccia web: <a href="https://github.com/Infingardo" target="_blank" rel="noopener noreferrer" className="hover:underline">Infingardo</a>
+                            </p>
                         </div>
 
                         {showExport && (
