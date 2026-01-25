@@ -15,6 +15,7 @@ Interfaccia web per la consultazione di sinonimi e contrari italiani. Restauro d
 - **Highlighting** dei termini matchati
 - **Cache locale** con localStorage (funziona offline dopo il primo caricamento)
 - **PWA installabile** su mobile e desktop
+- **Funziona offline** dopo il primo accesso (service worker)
 
 ---
 
@@ -70,7 +71,6 @@ Il JSON completo è disponibile su: [`sinonimi-master.json`](https://raw.githubu
 
 - **localStorage**: limite ~5MB, sincrono. Con 14k lemmi va bene. Se i dati crescessero molto, servirebbe IndexedDB.
 - **Ricerca O(n)**: filtra tutti i lemmi ad ogni ricerca. Con debounce 300ms e 14k lemmi, non è un problema.
-- **Nessun service worker**: la PWA usa solo cache localStorage, non funziona offline al primo accesso.
 
 ---
 
@@ -92,6 +92,7 @@ Il JSON completo è disponibile su: [`sinonimi-master.json`](https://raw.githubu
 - Highlighting termini matchati nei sinonimi/contrari
 - Crediti Homolaicus nel footer
 - Icona cestino per clear cache con tooltip
+- **Service worker per offline completo**
 
 ### v1.0.0
 - Release iniziale
