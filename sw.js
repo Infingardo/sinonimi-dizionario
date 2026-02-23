@@ -1,4 +1,4 @@
-const CACHE_NAME = 'sinonimi-v1.1.0';
+const CACHE_NAME = 'sinonimi-v1.2.0';
 const ASSETS = [
   './',
   './index.html',
@@ -7,8 +7,7 @@ const ASSETS = [
   './icon-512.png',
   'https://unpkg.com/react@18/umd/react.production.min.js',
   'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js',
-  'https://unpkg.com/@babel/standalone/babel.min.js',
-  'https://cdn.tailwindcss.com'
+  'https://cdn.tailwindcss.com/3.4.1'
 ];
 
 // Install: cache assets
@@ -38,7 +37,6 @@ self.addEventListener('fetch', (e) => {
       if (cached) return cached;
       
       return fetch(e.request).then(response => {
-        // Cache successful GET requests
         if (e.request.method === 'GET' && response.status === 200) {
           const clone = response.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
@@ -46,7 +44,6 @@ self.addEventListener('fetch', (e) => {
         return response;
       });
     }).catch(() => {
-      // Offline fallback for navigation
       if (e.request.mode === 'navigate') {
         return caches.match('./index.html');
       }
