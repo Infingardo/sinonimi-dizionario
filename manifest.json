@@ -2,6 +2,7 @@
   "name": "Dizionario dei Sinonimi",
   "short_name": "Sinonimi",
   "description": "Dizionario dei sinonimi e contrari italiani",
+  "id": "/sinonimi-dizionario/",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
